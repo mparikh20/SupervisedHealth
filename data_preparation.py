@@ -19,6 +19,7 @@ def write_sensitivity_proportion(ic50_df2, out_path):
     sensitivity_proportion_df = ic50_df2.groupby('drug name')['sensitivity_label'].value_counts().unstack().reset_index()
     sensitivity_proportion_df.rename(columns = {0 : 'resistant', 1: 'sensitive'}, inplace=True)
     sensitivity_proportion_df['total_data'] = sensitivity_proportion_df['sensitive'] + sensitivity_proportion_df['resistant']
+    sensitivity_proportion_df['proportion_sensitive'] = (sensitivity_proportion_df['sensitive'] / sensitivity_proportion_df['total_data'])*100
     sensitivity_proportion_df[(sensitivity_proportion_df['total_data']>=600)].to_csv(out_path, index=False)
 
 def prepare_rma_features(rma_path, ic50_df2, features_out):
@@ -48,7 +49,6 @@ def testset_id(features_df, column, fraction, testids_heldout_path):
     n = int(len(features_df)*fraction)
     test_id = np.random.choice(features_df[column], n, replace=False)    
     pd.Series(test_id).to_csv(testids_heldout_path,index=False, header=['id_testset'])
-
 
 
 def main():
