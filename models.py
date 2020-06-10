@@ -3,7 +3,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 import pickle
-from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.pipeline import make_pipeline
 from sklearn.pipeline import Pipeline
 from joblib import dump, load
@@ -28,6 +28,14 @@ def create_dataperdoi(labels_train_df, drug, features_all_df):
     doi_df = pd.merge(doi_labels_df, features_all_df, left_on = 'cell line name', right_on='cell_line_name')
     return doi_df 
 
+# Write column order into a file.
+def write_feature_columns(features_all_df, col_order_path): 
+    X = features_all_df[features_all_df.columns.difference(['drug name', 'cell_line_name', 'cell line name', 'sensitivity_label', 'cell_line_id', 'cosmic sample id'], sort=False)]
+    column_order = list(X.columns)
+    with open(col_order_path, 'w') as col_file:
+        for column in column_order:
+            col_file.write(f'{column}\n')
+
 # rmapreprocess_trainfile
 def assignxy_doi(doi_df):
     X = doi_df[doi_df.columns.difference(['drug name', 'cell_line_name', 'cell line name', 'sensitivity_label', 'cell_line_id', 'cosmic sample id'], sort=False)]
@@ -37,7 +45,7 @@ def assignxy_doi(doi_df):
 # minmax_trainvalidate
 def getauc_scaletrainvalidate(X, y, estimator):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=0)
-    pipe = Pipeline([('scaler', RobustScaler(quantile_range=(1.0, 99.0))), ('model', estimator)])
+    pipe = Pipeline([('scaler', MinMaxScaler()), ('model', estimator)])
     pipe.fit(X_train, y_train)
     y_scores = pipe.predict_proba(X_test)    
     return roc_auc_score(y_test, y_scores[:,1])
@@ -49,7 +57,7 @@ def run_models(selected_drugs_lst, labels_train_df, features_all_df, pickled_mod
         auc = getauc_scaletrainvalidate(X, y, LogisticRegression(penalty='l1', C=1, solver='liblinear', max_iter=1000, random_state=0))
         print(f'{drug},{auc}') 
         model = LogisticRegression(penalty='l1', C=1, solver='liblinear', max_iter=1000, random_state=0)
-        pipe = Pipeline([('scaler', RobustScaler(quantile_range=(1.0, 99.0))), ('model', model)])
+        pipe = Pipeline([('scaler', MinMaxScaler()), ('model', model)])
         pipe.fit(X, y)
         dump(pipe, f'{pickled_model_path}/{drug}_model')
         coef = model.coef_
@@ -67,11 +75,15 @@ def main():
     testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_3/testids_heldout.csv'
     features_in = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_3/features_rma_2.csv'
     pickled_model_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_models'
+    col_order_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_3/features_columns.txt'
+
+
     # Implementation
 
     labels_train_df = labels_removetestset(labels_path, testids_heldout_path)
     selected_drugs_lst = select_drugsofinterest(5, 95, sensitivity_proportion_path)
     features_all_df = pd.read_csv(features_in)
+    #write_feature_columns(features_all_df, col_order_path)
     run_models(selected_drugs_lst, labels_train_df, features_all_df, pickled_model_path)
 
 
