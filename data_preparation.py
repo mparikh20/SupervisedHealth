@@ -20,7 +20,7 @@ def write_sensitivity_proportion(ic50_df2, out_path):
     sensitivity_proportion_df.rename(columns = {0 : 'resistant', 1: 'sensitive'}, inplace=True)
     sensitivity_proportion_df['total_data'] = sensitivity_proportion_df['sensitive'] + sensitivity_proportion_df['resistant']
     sensitivity_proportion_df['proportion_sensitive'] = (sensitivity_proportion_df['sensitive'] / sensitivity_proportion_df['total_data'])*100
-    sensitivity_proportion_df[(sensitivity_proportion_df['total_data']>=600)].to_csv(out_path, index=False)
+    sensitivity_proportion_df[(sensitivity_proportion_df['total_data']>=400)].to_csv(out_path, index=False)
 
 def prepare_rma_features(rma_path, ic50_df2, features_out):
     rma_df = pd.read_csv(rma_path, delimiter = "\t")
@@ -47,6 +47,8 @@ def prepare_rma_features(rma_path, ic50_df2, features_out):
 
 def testset_id(features_df, column, fraction, testids_heldout_path):
     n = int(len(features_df)*fraction)
+    # Add a seed in this function so that same IDs are held out.
+    np.random.seed(0)
     test_id = np.random.choice(features_df[column], n, replace=False)    
     pd.Series(test_id).to_csv(testids_heldout_path,index=False, header=['id_testset'])
 
@@ -54,11 +56,11 @@ def testset_id(features_df, column, fraction, testids_heldout_path):
 def main():
     gdsc2_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_raw_2/pancancer_ic50_gdsc2.csv'
     
-    labels_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_3/labels.csv'
-    sensitivity_proportion_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_3/sensitivity_proportion.csv'
+    labels_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/labels.csv'
+    sensitivity_proportion_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/sensitivity_proportion.csv'
     rma_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_raw_2/cell_line_rma.csv'
-    features_out = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_3/features_rma_2.csv'
-    testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_3/testids_heldout.csv'
+    features_out = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/features_rma_2.csv'
+    testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/testids_heldout.csv'
 
     ic50_df2 = write_labels(gdsc2_path, labels_path)
     write_sensitivity_proportion(ic50_df2, sensitivity_proportion_path)

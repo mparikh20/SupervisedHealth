@@ -8,6 +8,8 @@ from sklearn.pipeline import make_pipeline
 from sklearn.pipeline import Pipeline
 from joblib import dump, load
 from sklearn.metrics import roc_auc_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
 
 
 def labels_removetestset(labels_path, testids_heldout_path):
@@ -47,15 +49,20 @@ def getauc_scaletrainvalidate(X, y, estimator):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=0)
     pipe = Pipeline([('scaler', MinMaxScaler()), ('model', estimator)])
     pipe.fit(X_train, y_train)
-    y_scores = pipe.predict_proba(X_test)    
-    return roc_auc_score(y_test, y_scores[:,1])
+    y_scores = pipe.predict_proba(X_test)
+    y_pred = pipe.predict(X_test)
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    accuracy = pipe.score(X_test, y_test)
+    auc = roc_auc_score(y_test, y_scores[:,1])
+    return auc, accuracy, precision, recall
 
 def run_models(selected_drugs_lst, labels_train_df, features_all_df, pickled_model_path):
     for drug in selected_drugs_lst:
         doi_df = create_dataperdoi(labels_train_df, drug, features_all_df)
         X, y = assignxy_doi(doi_df)
-        auc = getauc_scaletrainvalidate(X, y, LogisticRegression(penalty='l1', C=1, solver='liblinear', max_iter=1000, random_state=0))
-        print(f'{drug},{auc}') 
+        auc, accuracy, precision, recall = getauc_scaletrainvalidate(X, y, LogisticRegression(penalty='l1', C=1, solver='liblinear', max_iter=1000, random_state=0))
+        print(f'{drug}, AUC: {auc}, Accuracy: {accuracy}, Precision: {precision}, Recall: {recall}') 
         model = LogisticRegression(penalty='l1', C=1, solver='liblinear', max_iter=1000, random_state=0)
         pipe = Pipeline([('scaler', MinMaxScaler()), ('model', model)])
         pipe.fit(X, y)
@@ -70,20 +77,20 @@ def run_models(selected_drugs_lst, labels_train_df, features_all_df, pickled_mod
 def main():
 
     # File paths
-    sensitivity_proportion_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_3/sensitivity_proportion.csv'
-    labels_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_3/labels.csv'
-    testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_3/testids_heldout.csv'
-    features_in = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_3/features_rma_2.csv'
-    pickled_model_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_models'
-    col_order_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_3/features_columns.txt'
+    sensitivity_proportion_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_5/sensitivity_proportion.csv'
+    labels_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_5/labels.csv'
+    testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_5/testids_heldout.csv'
+    features_in = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_5/features_rma_2.csv'
+    pickled_model_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_models_5'
+    col_order_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_5/features_columns.txt'
 
 
-    # Implementation
+    # Implementation 
 
     labels_train_df = labels_removetestset(labels_path, testids_heldout_path)
     selected_drugs_lst = select_drugsofinterest(5, 95, sensitivity_proportion_path)
     features_all_df = pd.read_csv(features_in)
-    #write_feature_columns(features_all_df, col_order_path)
+    write_feature_columns(features_all_df, col_order_path)
     run_models(selected_drugs_lst, labels_train_df, features_all_df, pickled_model_path)
 
 
