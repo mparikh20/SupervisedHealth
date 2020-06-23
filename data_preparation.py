@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def write_labels(gdsc2_path, labels_path):
+def write_labels(gdsc2_path, ic50_path):
     ic50_df = pd.read_csv(gdsc2_path)
     # Convert column labels to lowercase
     ic50_df.columns = map(str.lower, ic50_df.columns)
@@ -10,17 +10,12 @@ def write_labels(gdsc2_path, labels_path):
     ic50_df2 = ic50_df.drop(['auc', 'rmse', 'z score', 'dataset version'], axis=1)
     # Add a new column that takes ln(ic50) column and takes exponent of it.
     ic50_df2['exp_ic50'] = ic50_df2['ic50'].apply(lambda x: np.exp(x))
-    ic50_df2['sensitivity_label'] = ic50_df2.apply(lambda x: 0 if x['exp_ic50'] > x['max conc'] else 1, axis=1)
+    # ic50_df2['sensitivity_label'] = ic50_df2.apply(lambda x: 0 if x['exp_ic50'] > x['max conc'] else 1, axis=1)
     ic50_df2.drop_duplicates(subset=['drug name', 'cell line name'], inplace=True)
-    ic50_df2[['drug name', 'cell line name', 'sensitivity_label']].to_csv(labels_path, index=False)
+    # ic50_df2[['drug name', 'cell line name', 'sensitivity_label']].to_csv(labels_path, index=False)
+    ic50_df2.to_csv(ic50_path, index=False)
     return ic50_df2
 
-def write_sensitivity_proportion(ic50_df2, out_path):
-    sensitivity_proportion_df = ic50_df2.groupby('drug name')['sensitivity_label'].value_counts().unstack().reset_index()
-    sensitivity_proportion_df.rename(columns = {0 : 'resistant', 1: 'sensitive'}, inplace=True)
-    sensitivity_proportion_df['total_data'] = sensitivity_proportion_df['sensitive'] + sensitivity_proportion_df['resistant']
-    sensitivity_proportion_df['proportion_sensitive'] = (sensitivity_proportion_df['sensitive'] / sensitivity_proportion_df['total_data'])*100
-    sensitivity_proportion_df[(sensitivity_proportion_df['total_data']>=400)].to_csv(out_path, index=False)
 
 def prepare_rma_features(rma_path, ic50_df2, features_out):
     rma_df = pd.read_csv(rma_path, delimiter = "\t")
@@ -52,20 +47,33 @@ def testset_id(features_df, column, fraction, testids_heldout_path):
     test_id = np.random.choice(features_df[column], n, replace=False)    
     pd.Series(test_id).to_csv(testids_heldout_path,index=False, header=['id_testset'])
 
+def write_total_data(ic50_df2, testids_heldout_path, n, out_path):
+    id = pd.read_csv(testids_heldout_path)
+    cellname_idlist = list(id['id_testset'])
+    # Remove test set id rows
+    ic50_no_test = ic50_df2[~ic50_df2['cell line name'].isin(cellname_idlist)]
+    # New df containing drug and median ic50.
+    ic50_median = ic50_no_test.groupby('drug name')['exp_ic50'].median().reset_index()
+    ic50_median.rename(columns={'exp_ic50': 'median_ic50'}, inplace=True)
+    total_data_df = ic50_df2['drug name'].value_counts().reset_index()
+    total_data_df.rename(columns={'index': 'drug name', 'drug name': 'data_points'}, inplace=True)
+    df_median_ic50 = pd.merge(ic50_median, total_data_df, how='inner')
+    df_median_ic50[(df_median_ic50['data_points']>=n)].to_csv(out_path, index=False)
+
 
 def main():
     gdsc2_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_raw_2/pancancer_ic50_gdsc2.csv'
-    
-    labels_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/labels.csv'
-    sensitivity_proportion_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/sensitivity_proportion.csv'
+    ic50_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/all_ic50.csv'
+    total_data_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/total_data_points.csv'
     rma_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_raw_2/cell_line_rma.csv'
-    features_out = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/features_rma_2.csv'
-    testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/testids_heldout.csv'
+    features_out = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/features_rma_2.csv'
+    testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/testids_heldout.csv'
+    out_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/median_ic50.csv'
 
-    ic50_df2 = write_labels(gdsc2_path, labels_path)
-    write_sensitivity_proportion(ic50_df2, sensitivity_proportion_path)
+    ic50_df2 = write_labels(gdsc2_path, ic50_path)
     features_df = prepare_rma_features(rma_path, ic50_df2, features_out)
     testset_id(features_df, 'cell_line_name', 0.1, testids_heldout_path)
+    write_total_data(ic50_df2, testids_heldout_path, 400, out_path)
 
 if __name__ == '__main__':
     main()

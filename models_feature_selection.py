@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
@@ -11,20 +12,19 @@ from sklearn.metrics import roc_auc_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 from sklearn.feature_selection import SelectFromModel
-from sklearn.svm import LinearSVC
 
 
-def labels_removetestset(labels_path, testids_heldout_path):
-    labels_all = pd.read_csv(labels_path)
-    id = pd.read_csv(testids_heldout_path)
-    cellname_idlist = list(id['id_testset']) # list of model ids to be held out
-    labels_train_df = labels_all[labels_all['cell line name'].isin(cellname_idlist) == False]
+def label_data(testids_heldout_path, median_path, ic50_path):
+    df_median = pd.read_csv(median_path)
+    df_test_id = pd.read_csv(testids_heldout_path)
+    cell_id = list(df_test_id['id_testset'])
+    df_ic50 = pd.read_csv(ic50_path)
+    df_ic50 = df_ic50[~df_ic50['cell line name'].isin(cell_id)]
+    labels_train_df = pd.merge(df_ic50, df_median, on='drug name', how='inner')
+    labels_train_df['sensitivity_label'] = np.where(labels_train_df['exp_ic50'] <= labels_train_df['median_ic50'], 1, 0)
+    labels_train_df = labels_train_df[['cell line name', 'drug name', 'sensitivity_label']]
     return labels_train_df
 
-def select_drugsofinterest(min_proportion_sensitive, max_proportion_sensitive, sensitivity_proportion_path):
-    sensitivity_proportion_df = pd.read_csv(sensitivity_proportion_path)
-    selected_drugs_lst = list(sensitivity_proportion_df[(sensitivity_proportion_df['proportion_sensitive'] >= min_proportion_sensitive) & (sensitivity_proportion_df['proportion_sensitive'] <= max_proportion_sensitive)]['drug name'])
-    return selected_drugs_lst
 
 # rmatraining_perdrug
 def create_dataperdoi(labels_train_df, drug, features_all_df): 
@@ -87,18 +87,18 @@ def run_models(selected_drugs_lst, labels_train_df, features_all_df, scaler, fea
 def main():
 
     # File paths
-    sensitivity_proportion_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/sensitivity_proportion.csv'
-    labels_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/labels.csv'
-    testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/testids_heldout.csv'
-    features_in = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/features_rma_2.csv'
-    pickled_model_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_models_6'
-    col_order_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/features_columns.txt'
+    ic50_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/all_ic50.csv'
+
+    testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/testids_heldout.csv'
+    features_in = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/features_rma_2.csv'
+    pickled_model_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_models_8'
+    col_order_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/features_columns.txt'
+    median_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/median_ic50.csv'
 
     # Implementation 
     # Remove test ids from the labels file.
-    labels_train_df = labels_removetestset(labels_path, testids_heldout_path)
-    # Select drugs of interest based on class proportion
-    selected_drugs_lst = select_drugsofinterest(5, 95, sensitivity_proportion_path)
+    labels_train_df = label_data(testids_heldout_path, median_path, ic50_path)
+    selected_drugs_lst = list(labels_train_df['drug name'].unique())
     # Load the main dataframe
     features_all_df = pd.read_csv(features_in)
     doi_df = create_dataperdoi(labels_train_df, 'Paclitaxel', features_all_df)
