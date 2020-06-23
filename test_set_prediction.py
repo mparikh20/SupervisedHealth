@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import joblib
 from sklearn.linear_model import LogisticRegression
 from sklearn import metrics
@@ -13,17 +14,18 @@ from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import classification_report
 
 # 
-def labels_retaintestset(labels_path, testids_heldout_path):
-    labels_all = pd.read_csv(labels_path)
-    id = pd.read_csv(testids_heldout_path)
-    cellname_idlist = list(id['id_testset']) # list of model ids held out
-    labels_test_df = labels_all[labels_all['cell line name'].isin(cellname_idlist) == True]
-    return labels_test_df
 
-def select_drugsofinterest(min_proportion_sensitive, max_proportion_sensitive, sensitivity_proportion_path):
-    sensitivity_proportion_df = pd.read_csv(sensitivity_proportion_path)
-    selected_drugs_lst = list(sensitivity_proportion_df[(sensitivity_proportion_df['proportion_sensitive'] >= min_proportion_sensitive) & (sensitivity_proportion_df['proportion_sensitive'] <= max_proportion_sensitive)]['drug name'])
-    return selected_drugs_lst
+def label_data(testids_heldout_path, median_path, ic50_path):
+    df_median = pd.read_csv(median_path)
+    df_test_id = pd.read_csv(testids_heldout_path)
+    cell_id = list(df_test_id['id_testset'])
+    df_ic50 = pd.read_csv(ic50_path)
+    df_ic50 = df_ic50[df_ic50['cell line name'].isin(cell_id)]
+    labels_test_df = pd.merge(df_ic50, df_median, on='drug name', how='inner')
+    labels_test_df['sensitivity_label'] = np.where(labels_test_df['exp_ic50'] <= labels_test_df['median_ic50'], 1, 0)
+    labels_test_df = labels_test_df[['cell line name', 'drug name', 'sensitivity_label']]
+    return labels_test_df    
+
 
 # rmatraining_perdrug
 def create_dataperdoi(labels_test_df, drug, features_all_df): 
@@ -79,16 +81,18 @@ def run_models(selected_drugs_lst, labels_test_df, drug_models, features_in, col
 def main():
 
     # File paths
-    sensitivity_proportion_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/sensitivity_proportion.csv'
     labels_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/labels.csv'
-    testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/testids_heldout.csv'
-    features_in = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/features_rma_2.csv'
-    pickled_model_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_models_6'
-    col_order_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_6/features_columns.txt'
+    testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/testids_heldout.csv'
+    median_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/median_ic50.csv'
+    ic50_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/all_ic50.csv'
+
+    features_in = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/features_rma_2.csv'
+    pickled_model_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_models_8'
+    col_order_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/features_columns.txt'
 
     # Implementation 
-    labels_test_df = labels_retaintestset(labels_path, testids_heldout_path)
-    selected_drugs_lst = select_drugsofinterest(5, 95, sensitivity_proportion_path)
+    labels_test_df = label_data(testids_heldout_path, median_path, ic50_path)
+    selected_drugs_lst = list(labels_test_df['drug name'].unique())
     columns_lst = read_column_order(col_order_path)
     drug_models = load_models(pickled_model_path, selected_drugs_lst)
     run_models(selected_drugs_lst, labels_test_df, drug_models, features_in, columns_lst)
