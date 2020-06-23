@@ -1,5 +1,5 @@
 import streamlit as st
-import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 import joblib
 
@@ -8,7 +8,7 @@ features_in = '/home/ubuntu/supervisedhealth/data/features_rma_2.csv'
 columns_path = '/home/ubuntu/supervisedhealth/data/features_columns.txt'
 pickled_model_path = '/home/ubuntu/supervisedhealth/models'
 
-drugs_lst = ['5-Fluorouracil', 'ABT737', 'Acetalax', 'Afatinib', 'Afuresertib', 'Alisertib', 'Alpelisib', 'AT13148', 'AZ960', 'AZ6102', 'AZD1332', 'AZD2014', 'AZD4547', 'AZD5153', 'AZD5363', 'AZD5438', 'AZD5582', 'AZD5991', 'AZD6738', 'AZD7762', 'AZD8186', 'BDP-00009066', 'BMS-345541', 'BMS-536924', 'Bortezomib', 'Buparlisib', 'Camptothecin', 'CDK9_5038', 'CDK9_5576', 'Cediranib', 'Cisplatin', 'Crizotinib', 'Cytarabine', 'Dabrafenib', 'Dactinomycin', 'Dactolisib', 'Dasatinib', 'Dihydrorotenone', 'Dinaciclib', 'Docetaxel', 'Eg5_9814', 'Elephantin', 'Entinostat', 'Entospletinib', 'Epirubicin', 'ERK_2440', 'ERK_6604', 'Erlotinib', 'Fludarabine', 'Foretinib', 'Gemcitabine', 'GNE-317', 'GSK2606414', 'I-BET-762', 'I-BRD9', 'IAP_5620', 'Ibrutinib', 'IGF1R_3801', 'Ipatasertib', 'Irinotecan', 'JAK_8517', 'JAK1_8709', 'KRAS (G12C) Inhibitor-12', 'Lapatinib', 'Leflunomide', 'Linsitinib', 'Luminespib', 'MIM1', 'Mirin', 'Mitoxantrone', 'MK-1775', 'MK-2206', 'MK-8776', 'ML323', 'Navitoclax', 'Nilotinib', 'Niraparib', 'Nutlin-3a (-)', 'NVP-ADW742', 'Obatoclax Mesylate', 'OF-1', 'Olaparib', 'Osimertinib', 'OTX015', 'Oxaliplatin', 'P22077', 'Paclitaxel', 'PAK_5339', 'Palbociclib', 'PCI-34051', 'PD173074', 'PD0325901', 'Pevonedistat', 'Pictilisib', 'PLX-4720', 'Podophyllotoxin bromide', 'PRIMA-1MET', 'PRT062607', 'Pyridostatin', 'Rapamycin', 'Sapitinib', 'SCH772984', 'Selumetinib', 'Sorafenib', 'TAF1_5496', 'Talazoparib', 'Tamoxifen', 'Taselisib', 'Telomerase Inhibitor IX', 'Teniposide', 'Topotecan', 'Trametinib', 'Ulixertinib', 'ULK1_4989', 'UMI-77', 'Uprosertib', 'VE-822', 'VE821', 'Venetoclax', 'Vinblastine', 'Vincristine', 'Vinorelbine', 'Vorinostat', 'VSP34_8731', 'VX-11e', 'Wee1 Inhibitor', 'WEHI-539', 'WIKI4', 'WZ4003', 'YK-4-279']
+drugs_lst = ["5-Fluorouracil", "ABT737", "AGI-5198", "AGI-6780", "AMG-319", "AT13148", "AZ6102", "AZ960", "AZD1208", "AZD1332", "AZD2014", "AZD3759", "AZD4547", "AZD5153", "AZD5363", "AZD5438", "AZD5582", "AZD5991", "AZD6738", "AZD7762", "AZD8186", "Acetalax", "Afatinib", "Afuresertib", "Alisertib", "Alpelisib", "BDP-00009066", "BIBR-1532", "BMS-345541", "BMS-536924", "BPD-00008900", "Bortezomib", "Buparlisib", "CDK9_5038", "CDK9_5576", "CZC24832", "Camptothecin", "Carmustine", "Cediranib", "Cisplatin", "Crizotinib", "Cyclophosphamide", "Cytarabine", "Dabrafenib", "Dactinomycin", "Dactolisib", "Dasatinib", "Dihydrorotenone", "Dinaciclib", "Docetaxel", "EPZ004777", "EPZ5676", "ERK_2440", "ERK_6604", "Eg5_9814", "Elephantin", "Entinostat", "Entospletinib", "Epirubicin", "Erlotinib", "Fludarabine", "Foretinib", "Fulvestrant", "GDC0810", "GNE-317", "GSK1904529A", "GSK2578215A", "GSK2606414", "GSK343", "GSK591", "Gallibiscoquinazole", "Gefitinib", "Gemcitabine", "I-BET-762", "I-BRD9", "IAP_5620", "IGF1R_3801", "IRAK4_4710", "IWP-2", "Ibrutinib", "Ipatasertib", "Irinotecan", "JAK1_8709", "JAK_8517", "KRAS (G12C) Inhibitor-12", "LCL161", "LGK974", "LJI308", "LY2109761", "Lapatinib", "Leflunomide", "Linsitinib", "Luminespib", "MG-132", "MIM1", "MIRA-1", "MK-1775", "MK-2206", "MK-8776", "ML323", "MN-64", "Mirin", "Mitoxantrone", "NVP-ADW742", "Navitoclax", "Nelarabine", "Nilotinib", "Niraparib", "Nutlin-3a (-)", "OF-1", "OTX015", "Obatoclax Mesylate", "Olaparib", "Osimertinib", "Oxaliplatin", "P22077", "PAK_5339", "PCI-34051", "PD0325901", "PD173074", "PFI3", "PLX-4720", "PRIMA-1MET", "PRT062607", "Paclitaxel", "Palbociclib", "Pevonedistat", "Picolinici-acid", "Pictilisib", "Podophyllotoxin bromide", "Pyridostatin", "RVX-208", "Rapamycin", "Ruxolitinib", "SCH772984", "Sabutoclax", "Sapitinib", "Savolitinib", "Selumetinib", "Sepantronium bromide", "Sinularin", "Sorafenib", "Staurosporine", "TAF1_5496", "Talazoparib", "Tamoxifen", "Taselisib", "Telomerase Inhibitor IX", "Temozolomide", "Teniposide", "Topotecan", "Trametinib", "ULK1_4989", "UMI-77", "Ulixertinib", "Uprosertib", "VE-822", "VE821", "VSP34_8731", "VX-11e", "Venetoclax", "Vinblastine", "Vincristine", "Vinorelbine", "Vorinostat", "WEHI-539", "WIKI4", "WZ4003", "Wee1 Inhibitor", "Wnt-C59", "XAV939", "YK-4-279", "Zoledronate"]
 
 @st.cache
 def read_cell_lines(test_lines_path):
@@ -45,10 +45,10 @@ def select_test_features(user_line, features_df, columns_lst):
 st.title('Supervised Health')
 st.header('Enabling Oncologists to Predict The Path of Least Resistance')
 
-# A box for selecting cancer type.
-
-user_cancer = st.selectbox("Please select patient's cancer type", ['Breast cancer', 'Lung cancer'])
-st.write('You selected:', user_cancer)
+# A checkbox showing a note about this work.
+if st.checkbox('Show important note about this application'):
+        st.write('This data scientist project is built by cancer biologist and entrepreneur Mukti Parikh, while being an Insight Health Data Science Fellow.')
+        st.write('Although conceptualized as a tool that can be used by oncologists, this is not a clinical tool.')
 
 # Add a box with a list of cell lines
 
@@ -86,5 +86,20 @@ results_dct = {'Drug': drugs_lst, 'Probability estimate for sensitivity': probab
 
 results_df = pd.DataFrame(results_dct)
 st.write('Supervised Health predicts the following response profile for', user_line)
-st.write(results_df)
-    
+
+def highlight_frame(row):
+    if row.values[-1] == 'Sensitive':
+        color = 'lightblue'
+    else:
+        color = 'yellow'
+    return ['background-color: %s' % color]*len(row.values)
+
+st.dataframe(results_df.style.apply(highlight_frame, axis=1))
+
+# Show the histogram of values
+plt.style.use('ggplot')
+plt.hist(probabilities_lst, edgecolor='black')
+plt.title('Histogram of probabilities')
+plt.xlabel('Probability')
+plt.ylabel('Number of drugs')
+st.pyplot()
