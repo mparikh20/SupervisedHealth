@@ -47,13 +47,8 @@ def assignxy_doi(doi_df, columns_lst):
         'aero_digestive_tract', 'blood', 'bone', 'breast',
        'digestive_system', 'kidney', 'lung', 'nervous_system', 'pancreas',
        'skin', 'soft_tissue', 'thyroid', 'urogenital_system'], sort=False)]
-    X_norm_2 = pd.DataFrame()
     y = doi_df['sensitivity_label']
-
-    for column in X.columns:
-        X_norm_2[column] = X[column]/X['GAPDH']
-    X_norm_2 = X_norm_2[columns_lst]
-    return X_norm_2, y
+    return X, y
 
 def load_models(pickled_model_path, selected_drugs_lst):
     drug_models = []

@@ -32,13 +32,23 @@ def prepare_rma_features(rma_path, ic50_df2, features_out):
     cell_lines.drop_duplicates(inplace=True)
     rma_df4 = pd.merge(rma_df3, cell_lines, right_on='cosmic sample id', left_on='cell_line_id', how='inner')
     rma_df5 = rma_df4.rename(columns={'cell line name': 'cell_line_name'}).copy()
+
+    # Normalize all the gene values with housekeeping gene.
+    rma_df6 = pd.DataFrame()
+    non_gene_columns = set(['cosmic sample id', 'cell_line_id', 'cell_line_name'])
+    for column in rma_df5.columns:
+        if column in non_gene_columns:
+            rma_df6[column] = rma_df5[column]
+        else:
+            rma_df6[column] = rma_df5[column]/rma_df5['GAPDH']
+
     cancer_type_df = ic50_df2[['cell line name', 'tissue']].drop_duplicates()
     cancer_type_df['cancer_type'] = 1
     cancer_type_df.rename(columns={'cell line name': 'cell_line_name'}, inplace=True)
     cancer_type_df2 = cancer_type_df.pivot(index='cell_line_name', values='cancer_type', columns='tissue').fillna(0).reset_index()
-    rma_df5 = pd.merge(rma_df5, cancer_type_df2, on='cell_line_name', how='left').fillna(0)
-    rma_df5.to_csv(features_out, index=False)
-    return rma_df5
+    rma_df6 = pd.merge(rma_df6, cancer_type_df2, on='cell_line_name', how='left').fillna(0)
+    rma_df6.to_csv(features_out, index=False)
+    return rma_df6
 
 def testset_id(features_df, column, fraction, testids_heldout_path):
     n = int(len(features_df)*fraction)
@@ -63,12 +73,12 @@ def write_total_data(ic50_df2, testids_heldout_path, n, out_path):
 
 def main():
     gdsc2_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_raw_2/pancancer_ic50_gdsc2.csv'
-    ic50_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/all_ic50.csv'
-    total_data_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/total_data_points.csv'
+    ic50_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_9/all_ic50.csv'
+    total_data_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_9/total_data_points.csv'
     rma_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_raw_2/cell_line_rma.csv'
-    features_out = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/features_rma_2.csv'
-    testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/testids_heldout.csv'
-    out_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/median_ic50.csv'
+    features_out = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_9/features_rma_2.csv'
+    testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_9/testids_heldout.csv'
+    out_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_9/median_ic50.csv'
 
     ic50_df2 = write_labels(gdsc2_path, ic50_path)
     features_df = prepare_rma_features(rma_path, ic50_df2, features_out)

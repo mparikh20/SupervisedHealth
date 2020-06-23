@@ -41,12 +41,8 @@ def assignxy_doi(doi_df):
         'aero_digestive_tract', 'blood', 'bone', 'breast',
        'digestive_system', 'kidney', 'lung', 'nervous_system', 'pancreas',
        'skin', 'soft_tissue', 'thyroid', 'urogenital_system'], sort=False)]
-    X_norm_2 = pd.DataFrame()
     y = doi_df['sensitivity_label']
-
-    for column in X.columns:
-        X_norm_2[column] = X[column]/X['GAPDH']
-    return X_norm_2, y
+    return X, y
 
 # Write column order into a file.
 def write_feature_columns(X_norm_2, col_order_path): 
@@ -87,13 +83,13 @@ def run_models(selected_drugs_lst, labels_train_df, features_all_df, scaler, fea
 def main():
 
     # File paths
-    ic50_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/all_ic50.csv'
+    ic50_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_9/all_ic50.csv'
 
-    testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/testids_heldout.csv'
-    features_in = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/features_rma_2.csv'
-    pickled_model_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_models_8'
-    col_order_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/features_columns.txt'
-    median_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_8/median_ic50.csv'
+    testids_heldout_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_9/testids_heldout.csv'
+    features_in = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_9/features_rma_2.csv'
+    pickled_model_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_models_9'
+    col_order_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_9/features_columns.txt'
+    median_path = '/Users/mukti/Documents/10_Insight_Project/sh_data/sh_processed_9/median_ic50.csv'
 
     # Implementation 
     # Remove test ids from the labels file.
